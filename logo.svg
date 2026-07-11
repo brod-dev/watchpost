@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Watchpost logo">
+  <!-- Original mark: a heartbeat trace inside a watch dial -->
+  <rect width="120" height="120" rx="26" fill="#5d7cf3"/>
+  <circle cx="60" cy="64" r="34" fill="none" stroke="#0d1220" stroke-width="7"/>
+  <path d="M26 64 h18 l7 -20 12 38 8 -26 6 8 h17" fill="none" stroke="#e7ebf5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="94" cy="30" r="9" fill="#37c880"/>
+</svg>

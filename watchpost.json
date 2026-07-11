@@ -1,0 +1,6 @@
+{
+  "targets": [
+    { "name": "My site", "url": "https://example.com" },
+    { "name": "API", "url": "https://api.example.com/health" }
+  ]
+}

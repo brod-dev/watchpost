@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>watchpost</title>
+<style>
+  :root {
+    --bg: #0d1220; --panel: #141b2e; --border: #24304c; --text: #e7ebf5;
+    --muted: #8593ad; --up: #37c880; --down: #ef5b64; --lat: #5d7cf3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1000px 400px at 80% -10%, rgba(93,124,243,.12), transparent), var(--bg);
+    color: var(--text); min-height: 100vh; padding: 34px 22px 60px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  header svg { width: 34px; height: 34px; border-radius: 8px; }
+  h1 { font-size: 22px; letter-spacing: -.3px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    padding: 18px 20px; margin-bottom: 14px;
+  }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .nm { font-weight: 600; font-size: 16px; }
+  .url { color: var(--muted); font-size: 12px; word-break: break-all; }
+  .pill {
+    font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; letter-spacing: .5px;
+  }
+  .pill.up { background: rgba(55,200,128,.15); color: var(--up); }
+  .pill.down { background: rgba(239,91,100,.15); color: var(--down); }
+  .stats { display: flex; gap: 22px; color: var(--muted); font-size: 12.5px; margin-top: 8px; flex-wrap: wrap; }
+  .stats b { color: var(--text); font-weight: 600; }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 34px; margin-top: 12px; }
+  .spark i {
+    flex: 1; min-width: 3px; max-width: 9px; border-radius: 2px 2px 0 0;
+    background: var(--lat); opacity: .85;
+  }
+  .spark i.bad { background: var(--down); }
+  .err { color: var(--down); font-size: 12px; margin-top: 8px; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; font-style: italic; }
+  footer { color: var(--muted); font-size: 11.5px; text-align: center; margin-top: 26px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="120" height="120" rx="26" fill="#5d7cf3"/>
+      <circle cx="60" cy="64" r="34" fill="none" stroke="#0d1220" stroke-width="7"/>
+      <path d="M26 64 h18 l7 -20 12 38 8 -26 6 8 h17" fill="none" stroke="#e7ebf5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="94" cy="30" r="9" fill="#37c880"/>
+    </svg>
+    <h1>watchpost</h1>
+  </header>
+  <p class="sub">Self-hosted uptime at a glance · refreshes automatically</p>
+  <div id="list"><p class="empty">Waiting for first check…</p></div>
+  <footer id="foot"></footer>
+</div>
+<script>
+(function () {
+  "use strict";
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function draw(data) {
+    var list = document.getElementById("list");
+    if (!data.targets || data.targets.length === 0) {
+      list.innerHTML = '<p class="empty">No targets configured.</p>';
+      return;
+    }
+    list.innerHTML = data.targets.map(function (t) {
+      var maxLat = 1;
+      (t.history || []).forEach(function (h) { if (h.latency_ms > maxLat) maxLat = h.latency_ms; });
+      var bars = (t.history || []).map(function (h) {
+        var pct = Math.max(8, 100 * h.latency_ms / maxLat);
+        return '<i class="' + (h.ok ? "" : "bad") + '" style="height:' + pct + '%" title="' +
+          h.latency_ms + ' ms"></i>';
+      }).join("");
+      var when = t.last_check ? new Date(t.last_check).toLocaleTimeString() : "—";
+      return '<div class="card">' +
+        '<div class="row"><div><div class="nm">' + esc(t.name) + '</div>' +
+        '<div class="url">' + esc(t.url) + "</div></div>" +
+        '<span class="pill ' + (t.up ? "up" : "down") + '">' + (t.up ? "UP" : "DOWN") + "</span></div>" +
+        '<div class="stats"><span>latency <b>' + t.latency_ms + " ms</b></span>" +
+        "<span>uptime <b>" + (t.uptime_pct || 0).toFixed(1) + "%</b></span>" +
+        (t.status ? "<span>status <b>" + t.status + "</b></span>" : "") +
+        "<span>checked <b>" + when + "</b></span></div>" +
+        '<div class="spark">' + bars + "</div>" +
+        (t.err ? '<div class="err">' + esc(t.err) + "</div>" : "") +
+        "</div>";
+    }).join("");
+    document.getElementById("foot").textContent =
+      "checking every " + data.interval_sec + "s · watchpost";
+  }
+  function tick() {
+    fetch("/api/status").then(function (r) { return r.json(); }).then(draw).catch(function () {});
+  }
+  tick();
+  setInterval(tick, 5000);
+})();
+</script>
+</body>
+</html>
